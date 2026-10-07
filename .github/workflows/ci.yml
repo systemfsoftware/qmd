@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         node-version: ["22", "23"]
 
     steps:
@@ -26,10 +26,6 @@ jobs:
       - name: Install SQLite (Ubuntu)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
-
-      - name: Install SQLite (macOS)
-        if: runner.os == 'macOS'
-        run: brew install sqlite
 
       - run: npm install
 
@@ -47,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -59,10 +55,6 @@ jobs:
       - name: Install SQLite (Ubuntu)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
-
-      - name: Install SQLite (macOS)
-        if: runner.os == 'macOS'
-        run: brew install sqlite
 
       - name: Verify lockfile is up-to-date
         run: bun install --frozen-lockfile
