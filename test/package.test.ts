@@ -82,29 +82,33 @@ describe("Nix flake package layout", () => {
     expect(flake).toContain("cp package.json $out/lib/qmd/");
   });
 
-  test("makeWrapper seeds the same pre-import env as bin/qmd (#723)", () => {
+  test("makeWrapper seeds the Linux pre-import env (#723)", () => {
     const flake = readFileSync(new URL("flake.nix", root), "utf8");
     const launcher = readFileSync(new URL("bin/qmd", root), "utf8");
+    const wrapper = flake.match(/makeWrapper \$\{pkgs\.bun\}\/bin\/bun[\s\S]*?\n\s*'';/)?.[0];
+    expect(wrapper, "flake.nix should wrap bun with makeWrapper").toBeDefined();
 
     // Nix installs skip bin/qmd and exec bun src/cli/qmd.ts. The wrapper must
-    // still set these BEFORE the native binding loads, matching the launcher.
-    for (const env of [
-      "LLAMA_LOG_LEVEL",
-      "GGML_LOG_LEVEL",
-      "GGML_BACKEND_SILENT",
-      "GGML_METAL_NO_RESIDENCY",
-      "QMD_METAL_KEEP_RESIDENCY",
-    ]) {
+    // still quiet native logs for `qmd mcp` BEFORE the binding loads,
+    // matching the launcher.
+    for (const env of ["LLAMA_LOG_LEVEL", "GGML_LOG_LEVEL", "GGML_BACKEND_SILENT"]) {
       expect(launcher, `bin/qmd should set ${env}`).toContain(env);
-      expect(flake, `flake.nix wrapper should set ${env}`).toContain(env);
     }
+    expect(wrapper).toContain(`--run 'if [ "$1" = mcp ]; then`);
+    expect(wrapper).toContain('export LLAMA_LOG_LEVEL="\'\'${LLAMA_LOG_LEVEL:-error}"');
+    expect(wrapper).toContain('export GGML_LOG_LEVEL="\'\'${GGML_LOG_LEVEL:-error}"');
+    expect(wrapper).toContain('export GGML_BACKEND_SILENT="\'\'${GGML_BACKEND_SILENT:-1}"');
 
-    expect(flake).toContain('--run');
-    expect(flake).toContain('$1" = mcp');
-    expect(flake).toContain('$(uname -s)" = Darwin');
-    expect(flake).toContain('LLAMA_LOG_LEVEL:-error');
-    expect(flake).toContain('GGML_LOG_LEVEL:-error');
-    expect(flake).toContain('GGML_BACKEND_SILENT:-1');
-    expect(flake).toContain('GGML_METAL_NO_RESIDENCY:-1');
+    // sqlite-vec and the native modules resolve sqlite, libc and libstdc++
+    // from the store, not the host.
+    expect(wrapper).toContain(
+      '--set LD_LIBRARY_PATH "${pkgs.sqlite.out}/lib:${pkgs.stdenv.cc.libc.out}/lib:${pkgs.stdenv.cc.cc.lib}/lib"',
+    );
+
+    // The flake builds Linux only; macOS loader and Metal env have no place in it.
+    for (const env of ["GGML_METAL_NO_RESIDENCY", "QMD_METAL_KEEP_RESIDENCY", "DYLD_LIBRARY_PATH"]) {
+      expect(flake, `flake.nix should not set ${env}`).not.toContain(env);
+    }
+    expect(flake).not.toContain("uname -s");
   });
 });
