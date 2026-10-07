@@ -501,7 +501,7 @@ export function normalizePathSeparators(path: string): string {
  * On WSL, paths like /c/work/... are valid drvfs mount points, not Git Bash paths.
  */
 function isWSL(): boolean {
-  return !!(process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP);
+  return !!(process.env["WSL_DISTRO_NAME"] || process.env["WSL_INTEROP"]);
 }
 
 /**
@@ -567,7 +567,7 @@ export function resolve(...paths: string[]): string {
     }
   } else {
     // Start with PWD or cwd, then append the first relative path
-    const pwd = normalizePathSeparators(process.env.PWD || process.cwd());
+    const pwd = normalizePathSeparators(process.env["PWD"] || process.cwd());
     
     // Extract Windows drive from PWD if present
     if (pwd.length >= 2 && /[a-zA-Z]/.test(pwd[0]!) && pwd[1] === ':') {
@@ -644,8 +644,8 @@ export function _resetProductionModeForTesting(): void {
 
 export function getDefaultDbPath(indexName: string = "index"): string {
   // Always allow override via INDEX_PATH (for testing)
-  if (process.env.INDEX_PATH) {
-    return process.env.INDEX_PATH;
+  if (process.env["INDEX_PATH"]) {
+    return process.env["INDEX_PATH"];
   }
 
   // In non-production mode (tests), require explicit path
@@ -656,14 +656,14 @@ export function getDefaultDbPath(indexName: string = "index"): string {
     );
   }
 
-  const cacheDir = process.env.XDG_CACHE_HOME || resolve(homedir(), ".cache");
+  const cacheDir = process.env["XDG_CACHE_HOME"] || resolve(homedir(), ".cache");
   const qmdCacheDir = resolve(cacheDir, "qmd");
   try { mkdirSync(qmdCacheDir, { recursive: true }); } catch { }
   return resolve(qmdCacheDir, `${indexName}.sqlite`);
 }
 
 export function getPwd(): string {
-  return process.env.PWD || process.cwd();
+  return process.env["PWD"] || process.cwd();
 }
 
 export function getRealPath(path: string): string {
@@ -1356,7 +1356,7 @@ export function getStoreContexts(db: Database): Array<{ collection: string; path
   return results;
 }
 
-export function upsertStoreCollection(db: Database, name: string, collection: Omit<Collection, 'pattern'> & { pattern?: string }): void {
+export function upsertStoreCollection(db: Database, name: string, collection: Omit<Collection, 'pattern'> & { pattern?: string | undefined }): void {
   db.prepare(`
     INSERT INTO store_collections (name, path, pattern, ignore_patterns, include_by_default, update_command, context)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -1620,8 +1620,8 @@ export async function reindexCollection(
   globPattern: string,
   collectionName: string,
   options?: {
-    ignorePatterns?: string[];
-    onProgress?: (info: ReindexProgress) => void;
+    ignorePatterns?: string[] | undefined;
+    onProgress?: ((info: ReindexProgress) => void) | undefined;
   }
 ): Promise<ReindexResult> {
   const db = store.db;
@@ -1774,24 +1774,24 @@ export type EmbedResult = {
 };
 
 export type EmbedOptions = {
-  force?: boolean;
-  model?: string;
+  force?: boolean | undefined;
+  model?: string | undefined;
   /**
    * Restrict embedding to documents in a single collection.
    * When omitted, all pending documents across every collection are embedded.
    */
-  collection?: string;
-  maxDocsPerBatch?: number;
-  maxBatchBytes?: number;
-  chunkStrategy?: ChunkStrategy;
+  collection?: string | undefined;
+  maxDocsPerBatch?: number | undefined;
+  maxBatchBytes?: number | undefined;
+  chunkStrategy?: ChunkStrategy | undefined;
   /**
    * Max wall-clock duration for the whole embed session, in milliseconds. When the
    * cap is reached, remaining document batches are skipped (re-run `qmd embed` to
    * continue). A value <= 0 disables the cap. Defaults to
    * {@link DEFAULT_EMBED_MAX_DURATION_MS} (30 minutes).
    */
-  maxDurationMs?: number;
-  onProgress?: (info: EmbedProgress) => void;
+  maxDurationMs?: number | undefined;
+  onProgress?: ((info: EmbedProgress) => void) | undefined;
 };
 
 type PendingEmbeddingDoc = {
@@ -1824,7 +1824,7 @@ function validatePositiveIntegerOption(name: string, value: number | undefined, 
   return value;
 }
 
-function resolveEmbedOptions(options?: EmbedOptions): Required<Pick<EmbedOptions, "maxDocsPerBatch" | "maxBatchBytes">> {
+function resolveEmbedOptions(options?: EmbedOptions): { maxDocsPerBatch: number; maxBatchBytes: number } {
   return {
     maxDocsPerBatch: validatePositiveIntegerOption("maxDocsPerBatch", options?.maxDocsPerBatch, DEFAULT_EMBED_MAX_DOCS_PER_BATCH),
     maxBatchBytes: validatePositiveIntegerOption("maxBatchBytes", options?.maxBatchBytes, DEFAULT_EMBED_MAX_BATCH_BYTES),
@@ -4561,10 +4561,10 @@ export async function expandQuery(query: string, model: string = DEFAULT_QUERY_M
       if (!Array.isArray(parsed)) return [];
       const rows = parsed as Array<Record<string, unknown>>;
       // Migrate old cache format: { type, text } → { type, query }
-      if (rows.length > 0 && typeof rows[0]?.query === "string") {
-        return rows.map((r) => ({ type: r.type as ExpandedQuery["type"], query: String(r.query) }));
-      } else if (rows.length > 0 && typeof rows[0]?.text === "string") {
-        return rows.map((r) => ({ type: r.type as ExpandedQuery["type"], query: String(r.text) }));
+      if (rows.length > 0 && typeof rows[0]?.["query"] === "string") {
+        return rows.map((r) => ({ type: r["type"] as ExpandedQuery["type"], query: String(r["query"]) }));
+      } else if (rows.length > 0 && typeof rows[0]?.["text"] === "string") {
+        return rows.map((r) => ({ type: r["type"] as ExpandedQuery["type"], query: String(r["text"]) }));
       }
     } catch {
       // Old cache format (pre-typed, newline-separated text) — re-expand
@@ -5462,16 +5462,16 @@ export interface SearchHooks {
 }
 
 export interface HybridQueryOptions {
-  collection?: string | readonly string[];
-  filter?: MetadataFilter;  // metadata filter applied to every retrieval call
-  limit?: number;           // default 10
-  minScore?: number;        // default 0
-  candidateLimit?: number;  // default RERANK_CANDIDATE_LIMIT
-  explain?: boolean;        // include backend/RRF/rerank score traces
-  intent?: string;          // domain intent hint for disambiguation
-  skipRerank?: boolean;     // skip LLM reranking, use only RRF scores
-  chunkStrategy?: ChunkStrategy;
-  hooks?: SearchHooks;
+  collection?: string | readonly string[] | undefined;
+  filter?: MetadataFilter | undefined;  // metadata filter applied to every retrieval call
+  limit?: number | undefined;           // default 10
+  minScore?: number | undefined;        // default 0
+  candidateLimit?: number | undefined;  // default RERANK_CANDIDATE_LIMIT
+  explain?: boolean | undefined;        // include backend/RRF/rerank score traces
+  intent?: string | undefined;          // domain intent hint for disambiguation
+  skipRerank?: boolean | undefined;     // skip LLM reranking, use only RRF scores
+  chunkStrategy?: ChunkStrategy | undefined;
+  hooks?: SearchHooks | undefined;
 }
 
 export interface HybridQueryResult {
@@ -5837,12 +5837,12 @@ export async function hybridQuery(
 }
 
 export interface VectorSearchOptions {
-  collection?: string | readonly string[];
-  filter?: MetadataFilter;  // metadata filter applied to every retrieval call
-  limit?: number;           // default 10
-  minScore?: number;        // default 0.3
-  intent?: string;          // domain intent hint for disambiguation
-  hooks?: Pick<SearchHooks, 'onExpand'>;
+  collection?: string | readonly string[] | undefined;
+  filter?: MetadataFilter | undefined;  // metadata filter applied to every retrieval call
+  limit?: number | undefined;           // default 10
+  minScore?: number | undefined;        // default 0.3
+  intent?: string | undefined;          // domain intent hint for disambiguation
+  hooks?: Pick<SearchHooks, 'onExpand'> | undefined;
 }
 
 export interface VectorSearchResult {
@@ -5925,18 +5925,18 @@ export async function vectorSearchQuery(
  * Matches the format used in QMD training data.
  */
 export interface StructuredSearchOptions {
-  collections?: string[];   // Filter to specific collections (OR match)
-  filter?: MetadataFilter;  // metadata filter applied to every retrieval call
-  limit?: number;           // default 10
-  minScore?: number;        // default 0
-  candidateLimit?: number;  // default RERANK_CANDIDATE_LIMIT
-  explain?: boolean;        // include backend/RRF/rerank score traces
+  collections?: string[] | undefined;   // Filter to specific collections (OR match)
+  filter?: MetadataFilter | undefined;  // metadata filter applied to every retrieval call
+  limit?: number | undefined;           // default 10
+  minScore?: number | undefined;        // default 0
+  candidateLimit?: number | undefined;  // default RERANK_CANDIDATE_LIMIT
+  explain?: boolean | undefined;        // include backend/RRF/rerank score traces
   /** Domain intent hint for disambiguation — steers reranking and chunk selection */
-  intent?: string;
+  intent?: string | undefined;
   /** Skip LLM reranking, use only RRF scores */
-  skipRerank?: boolean;
-  chunkStrategy?: ChunkStrategy;
-  hooks?: SearchHooks;
+  skipRerank?: boolean | undefined;
+  chunkStrategy?: ChunkStrategy | undefined;
+  hooks?: SearchHooks | undefined;
 }
 
 /**

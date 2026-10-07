@@ -79,10 +79,16 @@
     "sqlite-vec-windows-x64": "0.1.9"
   },
   "devDependencies": {
+    "@effect/language-service": "^0.87.4",
+    "@effect/tsgo": "^0.50.0",
     "@oxlint/plugins": "1.78.0",
+    "@systemfsoftware/tsconfig": "^2.0.1",
     "@types/better-sqlite3": "7.6.13",
+    "@types/node": "^24.19.1",
     "oxlint": "1.78.0",
+    "oxlint-tsgolint": "7.0.2001",
     "tsx": "4.23.12",
+    "typescript": "^7.0.2",
     "vitest": "3.2.7"
   },
   "pnpm": {
@@ -97,7 +103,7 @@
     ]
   },
   "peerDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^7"
   },
   "engines": {
     "node": ">=22.0.0"

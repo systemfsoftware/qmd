@@ -209,8 +209,8 @@ function getActiveIndexName(): string {
 }
 
 function mcpDaemonPaths(): { cacheDir: string; pidPath: string; logPath: string } {
-  const cacheDir = process.env.XDG_CACHE_HOME
-    ? resolve(process.env.XDG_CACHE_HOME, "qmd")
+  const cacheDir = process.env["XDG_CACHE_HOME"]
+    ? resolve(process.env["XDG_CACHE_HOME"], "qmd")
     : resolve(homedir(), ".cache", "qmd");
   const { pidFile, logFile } = mcpDaemonStateFiles(getActiveIndexName());
   return {
@@ -245,7 +245,7 @@ function ensureVecTable(_db: Database, dimensions: number): void {
 }
 
 // Terminal colors (respects NO_COLOR env)
-const useColor = !process.env.NO_COLOR && process.stdout.isTTY;
+const useColor = !process.env["NO_COLOR"] && process.stdout.isTTY;
 const c = {
   reset: useColor ? "\x1b[0m" : "",
   dim: useColor ? "\x1b[2m" : "",
@@ -479,14 +479,14 @@ function initLocalIndex(): void {
 }
 
 function isForceCpuEnabled(): boolean {
-  const value = process.env.QMD_FORCE_CPU;
+  const value = process.env["QMD_FORCE_CPU"];
   return !!value && !["false", "off", "none", "disable", "disabled", "0"].includes(value.trim().toLowerCase());
 }
 
 function configuredGpuModeLabel(): string {
   return isForceCpuEnabled()
     ? "CPU forced (QMD_FORCE_CPU)"
-    : (process.env.QMD_LLAMA_GPU?.trim() || "auto");
+    : (process.env["QMD_LLAMA_GPU"]?.trim() || "auto");
 }
 
 function summarizeDeviceNames(names: string[]): string {
@@ -1396,8 +1396,7 @@ function multiGet(pattern: string, maxLines?: number, maxBytes: number = DEFAULT
     // Glob pattern - matchFilesByGlob now returns virtual paths
     files = matchFilesByGlob(db, pattern).map(f => ({
       ...f,
-      collection: undefined,  // Will be fetched later if needed
-      path: undefined
+      // collection/path are resolved later if needed; left absent here.
     }));
     if (files.length === 0) {
       console.error(`No files matched pattern: ${pattern}`);
@@ -1407,7 +1406,7 @@ function multiGet(pattern: string, maxLines?: number, maxBytes: number = DEFAULT
   }
 
   // Collect results for structured output
-  const results: { file: string; displayPath: string; fsPath?: string; docid?: string; title: string; body: string; context: string | null; skipped: boolean; skipReason?: string }[] = [];
+  const results: { file: string; displayPath: string; fsPath?: string | undefined; docid?: string | undefined; title: string; body: string; context: string | null; skipped: boolean; skipReason?: string | undefined }[] = [];
 
   for (const file of files) {
     // Parse virtual path to get collection info if not already available
@@ -2189,7 +2188,7 @@ function resolveModelsForRuntime(): { embed: string; generate: string; rerank: s
 async function vectorIndex(
   model: string = resolveEmbedModelForCli(),
   force: boolean = false,
-  batchOptions?: { maxDocsPerBatch?: number; maxBatchBytes?: number; chunkStrategy?: ChunkStrategy; collection?: string; maxDurationMs?: number },
+  batchOptions?: { maxDocsPerBatch?: number | undefined; maxBatchBytes?: number | undefined; chunkStrategy?: ChunkStrategy | undefined; collection?: string | undefined; maxDurationMs?: number | undefined },
 ): Promise<void> {
   const storeInstance = getStore();
   const db = storeInstance.db;
@@ -2335,17 +2334,17 @@ type OutputOptions = {
   full: boolean;
   limit: number;
   minScore: number;
-  all?: boolean;
-  collection?: string | string[];  // Filter by collection name(s)
-  lineNumbers?: boolean; // Add line numbers to output
-  explain?: boolean;     // Include retrieval score traces (query only)
-  context?: string;      // Optional context for query expansion
-  candidateLimit?: number;  // Max candidates to rerank (default: 40)
-  intent?: string;       // Domain intent for disambiguation
-  skipRerank?: boolean;  // Skip LLM reranking, use RRF scores only
-  chunkStrategy?: ChunkStrategy;  // "auto" (default) or "regex"
-  fullPath?: boolean;    // Show realpath instead of qmd:// URI (relative to $PWD when subpath)
-  filter?: MetadataFilter;  // Metadata filter (--filter JSON)
+  all?: boolean | undefined;
+  collection?: string | string[] | undefined;  // Filter by collection name(s)
+  lineNumbers?: boolean | undefined; // Add line numbers to output
+  explain?: boolean | undefined;     // Include retrieval score traces (query only)
+  context?: string | undefined;      // Optional context for query expansion
+  candidateLimit?: number | undefined;  // Max candidates to rerank (default: 40)
+  intent?: string | undefined;       // Domain intent for disambiguation
+  skipRerank?: boolean | undefined;  // Skip LLM reranking, use RRF scores only
+  chunkStrategy?: ChunkStrategy | undefined;  // "auto" (default) or "regex"
+  fullPath?: boolean | undefined;    // Show realpath instead of qmd:// URI (relative to $PWD when subpath)
+  filter?: MetadataFilter | undefined;  // Metadata filter (--filter JSON)
 };
 
 // Highlight query terms in text (skip short words < 3 chars)
@@ -2415,13 +2414,13 @@ type OutputRow = {
   title: string;
   body: string;
   score: number;
-  context?: string | null;
-  chunkPos?: number;
-  chunkLen?: number;
-  hash?: string;
-  docid?: string;
-  metadata?: DocumentMetadata;
-  explain?: HybridQueryExplain;
+  context?: string | null | undefined;
+  chunkPos?: number | undefined;
+  chunkLen?: number | undefined;
+  hash?: string | undefined;
+  docid?: string | undefined;
+  metadata?: DocumentMetadata | undefined;
+  explain?: HybridQueryExplain | undefined;
 };
 
 const DEFAULT_EDITOR_URI_TEMPLATE = "vscode://file/{path}:{line}:{col}";
@@ -2433,7 +2432,7 @@ function encodePathForEditorUri(absolutePath: string): string {
 }
 
 function getEditorUriTemplate(): string {
-  const envTemplate = process.env.QMD_EDITOR_URI?.trim();
+  const envTemplate = process.env["QMD_EDITOR_URI"]?.trim();
   if (envTemplate) return envTemplate;
 
   try {
@@ -2749,7 +2748,7 @@ function collectionSearchFilter(names: string[]): string | string[] | undefined 
  */
 interface ParsedStructuredQuery {
   searches: ExpandedQuery[];
-  intent?: string;
+  intent?: string | undefined;
 }
 
 function parseStructuredQuery(query: string): ParsedStructuredQuery | null {
@@ -3152,7 +3151,7 @@ function parseCLI() {
   });
 
   if (values["no-gpu"]) {
-    process.env.QMD_FORCE_CPU = "1";
+    process.env["QMD_FORCE_CPU"] = "1";
   }
 
   // Select index name (default: "index"). If no explicit --index is supplied,
@@ -3263,7 +3262,7 @@ type SkillInfo = {
 const SKILL_DIR = "skills";
 
 function findPackageRoot(): string | null {
-  if (process.env.QMD_SKILLS_DIR) {
+  if (process.env["QMD_SKILLS_DIR"]) {
     return null;
   }
 
@@ -3281,8 +3280,8 @@ function findPackageRoot(): string | null {
 }
 
 function getSkillSearchDirs(_runtimeOnly = false): string[] {
-  if (process.env.QMD_SKILLS_DIR) {
-    return [process.env.QMD_SKILLS_DIR];
+  if (process.env["QMD_SKILLS_DIR"]) {
+    return [process.env["QMD_SKILLS_DIR"]];
   }
 
   const root = findPackageRoot();
@@ -3929,9 +3928,9 @@ function checkEnvironmentOverrides(activeModels: { embed: string; generate: stri
 
 function checkModelDefaults(activeModels: { embed: string; generate: string; rerank: string }, configModels: ModelsConfig = {}): void {
   const checks = [
-    { role: "embedding", key: "embed", active: activeModels.embed, configured: configModels.embed, defaultModel: DEFAULT_EMBED_MODEL, envName: "QMD_EMBED_MODEL", envValue: process.env.QMD_EMBED_MODEL },
-    { role: "generation", key: "generate", active: activeModels.generate, configured: configModels.generate, defaultModel: DEFAULT_QUERY_MODEL, envName: "QMD_GENERATE_MODEL", envValue: process.env.QMD_GENERATE_MODEL },
-    { role: "reranking", key: "rerank", active: activeModels.rerank, configured: configModels.rerank, defaultModel: DEFAULT_RERANK_MODEL, envName: "QMD_RERANK_MODEL", envValue: process.env.QMD_RERANK_MODEL },
+    { role: "embedding", key: "embed", active: activeModels.embed, configured: configModels.embed, defaultModel: DEFAULT_EMBED_MODEL, envName: "QMD_EMBED_MODEL", envValue: process.env["QMD_EMBED_MODEL"] },
+    { role: "generation", key: "generate", active: activeModels.generate, configured: configModels.generate, defaultModel: DEFAULT_QUERY_MODEL, envName: "QMD_GENERATE_MODEL", envValue: process.env["QMD_GENERATE_MODEL"] },
+    { role: "reranking", key: "rerank", active: activeModels.rerank, configured: configModels.rerank, defaultModel: DEFAULT_RERANK_MODEL, envName: "QMD_RERANK_MODEL", envValue: process.env["QMD_RERANK_MODEL"] },
   ] as const;
 
   const notes: string[] = [];
@@ -4086,14 +4085,14 @@ function linuxCudaRuntimeDiagnostic(): string | null {
   if (process.platform !== "linux") return null;
 
   const dirs = new Set<string>();
-  for (const value of [process.env.LD_LIBRARY_PATH, process.env.CUDA_PATH]) {
+  for (const value of [process.env["LD_LIBRARY_PATH"], process.env["CUDA_PATH"]]) {
     for (const part of (value ?? "").split(":")) {
       if (part) dirs.add(part);
     }
   }
-  if (process.env.CUDA_PATH) {
-    dirs.add(pathJoin(process.env.CUDA_PATH, "lib64"));
-    dirs.add(pathJoin(process.env.CUDA_PATH, "targets", "x86_64-linux", "lib"));
+  if (process.env["CUDA_PATH"]) {
+    dirs.add(pathJoin(process.env["CUDA_PATH"], "lib64"));
+    dirs.add(pathJoin(process.env["CUDA_PATH"], "targets", "x86_64-linux", "lib"));
   }
   for (const dir of ["/usr/lib", "/usr/lib64", "/usr/lib/x86_64-linux-gnu", "/usr/local/cuda/lib64", "/usr/local/cuda/targets/x86_64-linux/lib"]) {
     dirs.add(dir);
@@ -4128,7 +4127,7 @@ async function runDoctorDeviceChecks(nextSteps: string[]): Promise<void> {
   const mode = configuredGpuModeLabel();
   doctorCheck("device mode", true, mode);
 
-  const skipProbe = ["0", "false", "off", "no", "skip"].includes((process.env.QMD_DOCTOR_DEVICE_PROBE ?? "").trim().toLowerCase());
+  const skipProbe = ["0", "false", "off", "no", "skip"].includes((process.env["QMD_DOCTOR_DEVICE_PROBE"] ?? "").trim().toLowerCase());
   if (skipProbe) {
     doctorCheck("device probe", false, "skipped by QMD_DOCTOR_DEVICE_PROBE=0. Next: unset it and rerun `qmd doctor` to verify GPU/CPU acceleration");
     nextSteps.push("Unset `QMD_DOCTOR_DEVICE_PROBE` and rerun `qmd doctor` when you want to verify llama.cpp device acceleration.");

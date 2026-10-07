@@ -888,7 +888,7 @@ export type HttpServerHandle = {
  */
 export async function startMcpHttpServer(
   port: number,
-  options: ({ quiet?: boolean; host?: string; allowedOrigins?: string[]; allowedHosts?: string[] } & McpStartupOptions) = {},
+  options: ({ quiet?: boolean | undefined; host?: string | undefined; allowedOrigins?: string[] | undefined; allowedHosts?: string[] | undefined } & McpStartupOptions) = {},
 ): Promise<HttpServerHandle> {
   // See startMcpServer() for the rationale — flip production mode here so the
   // HTTP transport resolves the real database path, without leaking state into
@@ -938,13 +938,13 @@ export async function startMcpHttpServer(
       const tool = body.params?.name ?? "?";
       const args = body.params?.arguments;
       // Show query string if present, truncated
-      if (args?.query) {
-        const q = String(args.query).slice(0, 80);
+      if (args?.["query"]) {
+        const q = String(args["query"]).slice(0, 80);
         return `tools/call ${tool} "${q}"`;
       }
-      if (args?.file) return `tools/call ${tool} ${args.file}`;
-      if (args?.path) return `tools/call ${tool} ${args.path}`;
-      if (args?.pattern) return `tools/call ${tool} ${args.pattern}`;
+      if (args?.["file"]) return `tools/call ${tool} ${args["file"]}`;
+      if (args?.["path"]) return `tools/call ${tool} ${args["path"]}`;
+      if (args?.["pattern"]) return `tools/call ${tool} ${args["pattern"]}`;
       return `tools/call ${tool}`;
     }
     return method;
@@ -972,7 +972,7 @@ export async function startMcpHttpServer(
     return Buffer.concat(chunks).toString();
   }
 
-  const host = options.host ?? process.env.QMD_HOST ?? "localhost";
+  const host = options.host ?? process.env["QMD_HOST"] ?? "localhost";
   const originGuard = resolveOriginGuard({
     host,
     ...(options.allowedOrigins ? { allowedOrigins: options.allowedOrigins } : {}),
@@ -1034,14 +1034,14 @@ export async function startMcpHttpServer(
         const params = parsedParams as Record<string, unknown>;
 
         // Validate required fields
-        if (!params.searches || !Array.isArray(params.searches)) {
+        if (!params["searches"] || !Array.isArray(params["searches"])) {
           nodeRes.writeHead(400, { "Content-Type": "application/json" });
           nodeRes.end(JSON.stringify({ error: "Missing required field: searches (array)" }));
           return;
         }
 
         // Map to internal format
-        const searches = params.searches as RestSearchInput[];
+        const searches = params["searches"] as RestSearchInput[];
         const queries: ExpandedQuery[] = searches.map((s) => ({
           type: s.type as 'lex' | 'vec' | 'hyde',
           query: String(s.query || ""),
@@ -1049,13 +1049,13 @@ export async function startMcpHttpServer(
 
         // Optional metadata filter — must be an object and a valid filter AST
         let restFilter: MetadataFilter | undefined;
-        if (params.filter !== undefined) {
-          if (typeof params.filter !== "object" || params.filter === null || Array.isArray(params.filter)) {
+        if (params["filter"] !== undefined) {
+          if (typeof params["filter"] !== "object" || params["filter"] === null || Array.isArray(params["filter"])) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: "Invalid field: filter (must be an object)" }));
             return;
           }
-          const filterValidation = validateFilterArgument(params.filter);
+          const filterValidation = validateFilterArgument(params["filter"]);
           if (filterValidation.error) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: filterValidation.error }));
@@ -1065,17 +1065,17 @@ export async function startMcpHttpServer(
         }
 
         // Use default collections if none specified
-        const effectiveCollections = Array.isArray(params.collections) ? params.collections.map(String) : defaultCollectionNames;
+        const effectiveCollections = Array.isArray(params["collections"]) ? params["collections"].map(String) : defaultCollectionNames;
 
         const results = await store.search({
           queries,
           collections: effectiveCollections.length > 0 ? effectiveCollections : undefined,
           filter: restFilter,
-          limit: typeof params.limit === "number" ? params.limit : 10,
-          minScore: typeof params.minScore === "number" ? params.minScore : 0,
-          candidateLimit: typeof params.candidateLimit === "number" ? params.candidateLimit : undefined,
-          intent: typeof params.intent === "string" ? params.intent : undefined,
-          rerank: typeof params.rerank === "boolean" ? params.rerank : undefined,
+          limit: typeof params["limit"] === "number" ? params["limit"] : 10,
+          minScore: typeof params["minScore"] === "number" ? params["minScore"] : 0,
+          candidateLimit: typeof params["candidateLimit"] === "number" ? params["candidateLimit"] : undefined,
+          intent: typeof params["intent"] === "string" ? params["intent"] : undefined,
+          rerank: typeof params["rerank"] === "boolean" ? params["rerank"] : undefined,
         });
 
         // Use first lex or vec query for snippet extraction
@@ -1084,7 +1084,7 @@ export async function startMcpHttpServer(
           || searches[0]?.query || "";
 
         const formatted = results.map(r => {
-          const { line, snippet } = extractSnippet(r.body, String(primaryQuery), 300, r.bestChunkPos, r.bestChunk.length, typeof params.intent === "string" ? params.intent : undefined);
+          const { line, snippet } = extractSnippet(r.body, String(primaryQuery), 300, r.bestChunkPos, r.bestChunk.length, typeof params["intent"] === "string" ? params["intent"] : undefined);
           return {
             docid: `#${r.docid}`,
             file: `qmd://${encodeQmdPath(r.displayPath)}`,
@@ -1099,7 +1099,7 @@ export async function startMcpHttpServer(
 
         nodeRes.writeHead(200, { "Content-Type": "application/json" });
         nodeRes.end(JSON.stringify({ results: formatted }));
-        log(`${ts()} POST /query ${params.searches.length} queries (${Date.now() - reqStart}ms)`);
+        log(`${ts()} POST /query ${params["searches"].length} queries (${Date.now() - reqStart}ms)`);
         return;
       }
 

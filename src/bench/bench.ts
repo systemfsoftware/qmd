@@ -40,7 +40,7 @@ type Backend = {
 
 type ParsedStructuredQuery = {
   searches: ExpandedQuery[];
-  intent?: string;
+  intent?: string | undefined;
 };
 
 function parseStructuredQuery(query: string): ParsedStructuredQuery | undefined {
@@ -325,12 +325,12 @@ export function allZeroBenchWarning(collection?: string): string {
 export async function runBenchmark(
   fixturePath: string,
   options: {
-    json?: boolean;
-    collection?: string;
-    backends?: string[];
-    dbPath?: string;
-    configPath?: string;
-    config?: import("../collections.js").CollectionConfig;
+    json?: boolean | undefined;
+    collection?: string | undefined;
+    backends?: string[] | undefined;
+    dbPath?: string | undefined;
+    configPath?: string | undefined;
+    config?: import("../collections.js").CollectionConfig | undefined;
   } = {},
 ): Promise<BenchmarkResult> {
   // Load fixture

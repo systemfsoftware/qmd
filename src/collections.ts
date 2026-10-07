@@ -27,10 +27,10 @@ export type ContextMap = Record<string, string>;
 export interface Collection {
   path: string;              // Absolute path to index
   pattern: string;           // Glob pattern (e.g., "**/*.md")
-  ignore?: string[];         // Glob patterns to exclude (e.g., ["Sessions/**"])
-  context?: ContextMap;      // Optional context definitions
-  update?: string;           // Optional bash command to run during qmd update
-  includeByDefault?: boolean; // Include in queries by default (default: true)
+  ignore?: string[] | undefined;         // Glob patterns to exclude (e.g., ["Sessions/**"])
+  context?: ContextMap | undefined;      // Optional context definitions
+  update?: string | undefined;           // Optional bash command to run during qmd update
+  includeByDefault?: boolean | undefined; // Include in queries by default (default: true)
 }
 
 /**
@@ -46,7 +46,7 @@ export interface ModelsConfig {
  * The complete configuration file structure
  */
 export interface CollectionConfig {
-  global_context?: string;                    // Context applied to all collections
+  global_context?: string | undefined;        // Context applied to all collections
   editor_uri?: string;                        // Editor URI template for terminal hyperlinks
   editor_uri_template?: string;               // Alias for editor_uri
   editorUri?: string;                         // camelCase alias for editor_uri
@@ -118,12 +118,12 @@ export function setConfigIndexName(name: string): void {
 
 export function getConfigDir(): string {
   // Allow override via QMD_CONFIG_DIR for testing
-  if (process.env.QMD_CONFIG_DIR) {
-    return process.env.QMD_CONFIG_DIR;
+  if (process.env["QMD_CONFIG_DIR"]) {
+    return process.env["QMD_CONFIG_DIR"];
   }
   // Respect XDG Base Directory specification (consistent with store.ts)
-  if (process.env.XDG_CONFIG_HOME) {
-    return join(process.env.XDG_CONFIG_HOME, "qmd");
+  if (process.env["XDG_CONFIG_HOME"]) {
+    return join(process.env["XDG_CONFIG_HOME"], "qmd");
   }
   return join(qmdHomedir(), ".config", "qmd");
 }
