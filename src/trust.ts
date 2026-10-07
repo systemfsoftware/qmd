@@ -38,9 +38,9 @@ export type CollectionPath = {
 export type ModelSlot = "embed" | "rerank" | "generate";
 
 export type ModelsSnapshot = {
-  embed?: string;
-  rerank?: string;
-  generate?: string;
+  embed?: string | undefined;
+  rerank?: string | undefined;
+  generate?: string | undefined;
 };
 
 export type SensitiveSnapshot = {
@@ -270,7 +270,7 @@ function isTruthyEnv(value: string | undefined): boolean {
 
 /** True when the process has opted in to trusting project-local config unattended. */
 export function isLocalConfigTrustOptedIn(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthyEnv(env.QMD_TRUST_LOCAL_CONFIG) || isTruthyEnv(env.QMD_TRUST_UPDATE_HOOKS);
+  return isTruthyEnv(env["QMD_TRUST_LOCAL_CONFIG"]) || isTruthyEnv(env["QMD_TRUST_UPDATE_HOOKS"]);
 }
 
 /**
@@ -291,7 +291,7 @@ export function decideHookGate(options: {
   const digest = hookDigest(options.hooks);
 
   if (options.hooks.length === 0) return { action: "run", digest };
-  if (isTruthyEnv(env.QMD_TRUST_UPDATE_HOOKS) || isTruthyEnv(env.QMD_TRUST_LOCAL_CONFIG)) {
+  if (isTruthyEnv(env["QMD_TRUST_UPDATE_HOOKS"]) || isTruthyEnv(env["QMD_TRUST_LOCAL_CONFIG"])) {
     return { action: "run", digest };
   }
   if (!isLocalConfigPath(options.configPath)) return { action: "run", digest };

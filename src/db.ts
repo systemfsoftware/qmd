@@ -115,7 +115,7 @@ function enableWal(db: Database, budgetMs: number): void {
  */
 export function openDatabase(path: string): Database {
   const db = new _Database(path) as Database;
-  const raw = process.env.QMD_SQLITE_BUSY_TIMEOUT;
+  const raw = process.env["QMD_SQLITE_BUSY_TIMEOUT"];
   const parsed = raw !== undefined && raw !== "" ? Number(raw) : Number.NaN;
   const busyTimeoutMs = Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 120_000;
   db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);

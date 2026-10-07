@@ -95,8 +95,8 @@ export function resolveOriginGuard(options: {
   env?: NodeJS.ProcessEnv;
 }): OriginGuard {
   const env = options.env ?? process.env;
-  const rawOrigins = options.allowedOrigins ?? splitList(env.QMD_ALLOWED_ORIGINS);
-  const rawHosts = options.allowedHosts ?? splitList(env.QMD_ALLOWED_HOSTS);
+  const rawOrigins = options.allowedOrigins ?? splitList(env["QMD_ALLOWED_ORIGINS"]);
+  const rawHosts = options.allowedHosts ?? splitList(env["QMD_ALLOWED_HOSTS"]);
 
   if (rawOrigins.includes("*")) {
     return { disabled: true, allowedOrigins: [], allowedHosts: [], enforceHost: false };

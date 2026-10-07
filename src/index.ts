@@ -177,49 +177,49 @@ export type UpdateResult = {
  */
 export interface SearchOptions {
   /** Simple query string — will be auto-expanded via LLM */
-  query?: string;
+  query?: string | undefined;
   /** Pre-expanded queries (from expandQuery) — skips auto-expansion */
-  queries?: ExpandedQuery[];
+  queries?: ExpandedQuery[] | undefined;
   /** Domain intent hint — steers reranking and snippet/chunk selection */
-  intent?: string;
+  intent?: string | undefined;
   /** Rerank results using LLM (default: true) */
-  rerank?: boolean;
+  rerank?: boolean | undefined;
   /** Filter to a specific collection */
-  collection?: string;
+  collection?: string | undefined;
   /** Filter to specific collections */
-  collections?: string[];
+  collections?: string[] | undefined;
   /** Metadata filter — every returned result satisfies it */
-  filter?: MetadataFilter;
+  filter?: MetadataFilter | undefined;
   /** Max results (default: 10) */
-  limit?: number;
+  limit?: number | undefined;
   /** Max candidates to rerank (default: 40) */
-  candidateLimit?: number;
+  candidateLimit?: number | undefined;
   /** Minimum score threshold */
-  minScore?: number;
+  minScore?: number | undefined;
   /** Include explain traces */
-  explain?: boolean;
+  explain?: boolean | undefined;
   /** Chunk strategy: "auto" (default, uses AST for code files) or "regex" (legacy) */
-  chunkStrategy?: ChunkStrategy;
+  chunkStrategy?: ChunkStrategy | undefined;
 }
 
 /**
  * Options for searchLex() — BM25 keyword search.
  */
 export interface LexSearchOptions {
-  limit?: number;
-  collection?: string | string[];
+  limit?: number | undefined;
+  collection?: string | string[] | undefined;
   /** Metadata filter — every returned result satisfies it */
-  filter?: MetadataFilter;
+  filter?: MetadataFilter | undefined;
 }
 
 /**
  * Options for searchVector() — vector similarity search.
  */
 export interface VectorSearchOptions {
-  limit?: number;
-  collection?: string | string[];
+  limit?: number | undefined;
+  collection?: string | string[] | undefined;
   /** Metadata filter — every returned result satisfies it */
-  filter?: MetadataFilter;
+  filter?: MetadataFilter | undefined;
 }
 
 /**
@@ -284,7 +284,7 @@ export interface QMDStore {
   get(pathOrDocid: string, options?: { includeBody?: boolean }): Promise<DocumentResult | DocumentLookupError>;
 
   /** Get the body content of a document, optionally sliced by line range */
-  getDocumentBody(pathOrDocid: string, opts?: { fromLine?: number; maxLines?: number }): Promise<string | null>;
+  getDocumentBody(pathOrDocid: string, opts?: { fromLine?: number | undefined; maxLines?: number | undefined }): Promise<string | null>;
 
   /** Get multiple documents by glob pattern or comma-separated list */
   multiGet(pattern: string, options?: { includeBody?: boolean; maxBytes?: number }): Promise<{ docs: MultiGetResult[]; errors: string[] }>;
@@ -292,7 +292,7 @@ export interface QMDStore {
   // ── Collection Management ───────────────────────────────────────────
 
   /** Add or update a collection */
-  addCollection(name: string, opts: { path: string; pattern?: string; ignore?: string[] }): Promise<void>;
+  addCollection(name: string, opts: { path: string; pattern?: string | undefined; ignore?: string[] | undefined }): Promise<void>;
 
   /** Remove a collection */
   removeCollection(name: string): Promise<boolean>;
@@ -327,20 +327,20 @@ export interface QMDStore {
 
   /** Re-index collections by scanning the filesystem */
   update(options?: {
-    collections?: string[];
-    onProgress?: (info: UpdateProgress) => void;
+    collections?: string[] | undefined;
+    onProgress?: ((info: UpdateProgress) => void) | undefined;
   }): Promise<UpdateResult>;
 
   /** Generate vector embeddings for documents that need them */
   embed(options?: {
-    force?: boolean;
-    model?: string;
+    force?: boolean | undefined;
+    model?: string | undefined;
     /** Restrict embedding to documents in one collection. */
-    collection?: string;
-    maxDocsPerBatch?: number;
-    maxBatchBytes?: number;
-    chunkStrategy?: ChunkStrategy;
-    onProgress?: (info: EmbedProgress) => void;
+    collection?: string | undefined;
+    maxDocsPerBatch?: number | undefined;
+    maxBatchBytes?: number | undefined;
+    chunkStrategy?: ChunkStrategy | undefined;
+    onProgress?: ((info: EmbedProgress) => void) | undefined;
   }): Promise<EmbedResult>;
 
   // ── Index Health ────────────────────────────────────────────────────

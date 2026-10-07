@@ -196,16 +196,16 @@ export type RerankResult = {
 export type ModelInfo = {
   name: string;
   exists: boolean;
-  path?: string;
+  path?: string | undefined;
 };
 
 /**
  * Options for embedding
  */
 export type EmbedOptions = {
-  model?: string;
-  isQuery?: boolean;
-  title?: string;
+  model?: string | undefined;
+  isQuery?: boolean | undefined;
+  title?: string | undefined;
 };
 
 /**
@@ -295,24 +295,31 @@ export const DEFAULT_RERANK_MODEL_URI = DEFAULT_RERANK_MODEL;
 export const DEFAULT_GENERATE_MODEL_URI = DEFAULT_GENERATE_MODEL;
 
 export type ModelResolutionConfig = {
-  embed?: string;
-  generate?: string;
-  rerank?: string;
+  embed?: string | undefined;
+  generate?: string | undefined;
+  rerank?: string | undefined;
 };
 
 export function resolveEmbedModel(config?: ModelResolutionConfig): string {
-  return config?.embed || process.env.QMD_EMBED_MODEL || DEFAULT_EMBED_MODEL;
+  return config?.embed || process.env["QMD_EMBED_MODEL"] || DEFAULT_EMBED_MODEL;
 }
 
 export function resolveGenerateModel(config?: ModelResolutionConfig): string {
-  return config?.generate || process.env.QMD_GENERATE_MODEL || DEFAULT_GENERATE_MODEL;
+  return config?.generate || process.env["QMD_GENERATE_MODEL"] || DEFAULT_GENERATE_MODEL;
 }
 
 export function resolveRerankModel(config?: ModelResolutionConfig): string {
-  return config?.rerank || process.env.QMD_RERANK_MODEL || DEFAULT_RERANK_MODEL;
+  return config?.rerank || process.env["QMD_RERANK_MODEL"] || DEFAULT_RERANK_MODEL;
 }
 
-export function resolveModels(config?: ModelResolutionConfig): Required<ModelResolutionConfig> {
+/** Fully-resolved model identifiers — every field is a concrete string. */
+export type ResolvedModels = {
+  embed: string;
+  generate: string;
+  rerank: string;
+};
+
+export function resolveModels(config?: ModelResolutionConfig): ResolvedModels {
   return {
     embed: resolveEmbedModel(config),
     generate: resolveGenerateModel(config),
@@ -321,8 +328,8 @@ export function resolveModels(config?: ModelResolutionConfig): Required<ModelRes
 }
 
 // Local model cache directory
-const MODEL_CACHE_DIR = process.env.XDG_CACHE_HOME
-  ? join(process.env.XDG_CACHE_HOME, "qmd", "models")
+const MODEL_CACHE_DIR = process.env["XDG_CACHE_HOME"]
+  ? join(process.env["XDG_CACHE_HOME"], "qmd", "models")
   : join(homedir(), ".cache", "qmd", "models");
 export const DEFAULT_MODEL_CACHE_DIR = MODEL_CACHE_DIR;
 
@@ -626,15 +633,15 @@ export interface LLM {
 // =============================================================================
 
 export type LlamaCppConfig = {
-  embedModel?: string;
-  generateModel?: string;
-  rerankModel?: string;
-  modelCacheDir?: string;
+  embedModel?: string | undefined;
+  generateModel?: string | undefined;
+  rerankModel?: string | undefined;
+  modelCacheDir?: string | undefined;
   /**
    * Context size used for query expansion generation contexts.
    * Default: 2048. Can also be set via QMD_EXPAND_CONTEXT_SIZE.
    */
-  expandContextSize?: number;
+  expandContextSize?: number | undefined;
   /**
    * Inactivity timeout in ms before unloading contexts (default: 2 minutes, 0 to disable).
    *
@@ -642,14 +649,14 @@ export type LlamaCppConfig = {
    * contexts when idle, since contexts (and their sequences) are the heavy per-session objects.
    * @see https://node-llama-cpp.withcat.ai/guide/objects-lifecycle
    */
-  inactivityTimeoutMs?: number;
+  inactivityTimeoutMs?: number | undefined;
   /**
    * Whether to dispose models on inactivity (default: false).
    *
    * Keeping models loaded avoids repeated VRAM thrash; set to true only if you need aggressive
    * memory reclaim.
    */
-  disposeModelsOnInactivity?: boolean;
+  disposeModelsOnInactivity?: boolean | undefined;
 };
 
 /**
@@ -668,7 +675,7 @@ type ParallelismOptions = {
   envValue?: string;
 };
 
-export function resolveParallelismOverride(envValue = process.env.QMD_EMBED_PARALLELISM): number | undefined {
+export function resolveParallelismOverride(envValue = process.env["QMD_EMBED_PARALLELISM"]): number | undefined {
   const normalized = envValue?.trim() ?? "";
   if (!normalized) return undefined;
 
@@ -752,8 +759,8 @@ export function estimateEmbedContextMB(options: {
 }
 
 export function resolveLlamaGpuMode(
-  envValue = process.env.QMD_LLAMA_GPU,
-  forceCpuValue = process.env.QMD_FORCE_CPU
+  envValue = process.env["QMD_LLAMA_GPU"],
+  forceCpuValue = process.env["QMD_FORCE_CPU"]
 ): LlamaGpuMode {
   const forceCpu = forceCpuValue?.trim().toLowerCase() ?? "";
   if (forceCpu && !["false", "off", "none", "disable", "disabled", "0"].includes(forceCpu)) {
@@ -807,7 +814,7 @@ function resolveExpandContextSize(configValue?: number): number {
     return configValue;
   }
 
-  const envValue = process.env.QMD_EXPAND_CONTEXT_SIZE?.trim();
+  const envValue = process.env["QMD_EXPAND_CONTEXT_SIZE"]?.trim();
   if (!envValue) return DEFAULT_EXPAND_CONTEXT_SIZE;
 
   const parsed = Number.parseInt(envValue, 10);
@@ -829,7 +836,7 @@ function isCpuModeRequested(): boolean {
 }
 
 export class LlamaCpp implements LLM {
-  private readonly _ciMode = !!process.env.CI;
+  private readonly _ciMode = !!process.env["CI"];
   private llama: Llama | null = null;
   private embedModel: LlamaModel | null = null;
   private embedModelPath: string | null = null;
@@ -1339,12 +1346,12 @@ export class LlamaCpp implements LLM {
   // while staying well below the 40 960-token auto size.
   // Override with QMD_RERANK_CONTEXT_SIZE env var if you need more headroom.
   private static readonly RERANK_CONTEXT_SIZE: number = (() => {
-    const v = parseInt(process.env.QMD_RERANK_CONTEXT_SIZE ?? "", 10);
+    const v = parseInt(process.env["QMD_RERANK_CONTEXT_SIZE"] ?? "", 10);
     return Number.isFinite(v) && v > 0 ? v : 4096;
   })();
 
   private static readonly EMBED_CONTEXT_SIZE: number = (() => {
-    const v = parseInt(process.env.QMD_EMBED_CONTEXT_SIZE ?? "", 10);
+    const v = parseInt(process.env["QMD_EMBED_CONTEXT_SIZE"] ?? "", 10);
     return Number.isFinite(v) && v > 0 ? v : 2048;
   })();
   private async ensureRerankContexts(): Promise<Awaited<ReturnType<LlamaModel["createRankingContext"]>>[]> {
@@ -1839,7 +1846,7 @@ export class LlamaCpp implements LLM {
     gpu: string | false;
     gpuOffloading: boolean;
     gpuDevices: string[];
-    vram?: { total: number; used: number; free: number };
+    vram?: { total: number; used: number; free: number } | undefined;
     cpuCores: number;
   }> {
     const llama = await this.ensureLlama(options.allowBuild ?? true);
@@ -2201,8 +2208,8 @@ export function canUnloadLLM(): boolean {
  */
 export function isDarwinMetalMitigationActive(): boolean {
   if (process.platform !== "darwin") return false;
-  if (process.env.QMD_METAL_KEEP_RESIDENCY === "1") return false;
-  return process.env.GGML_METAL_NO_RESIDENCY === "1";
+  if (process.env["QMD_METAL_KEEP_RESIDENCY"] === "1") return false;
+  return process.env["GGML_METAL_NO_RESIDENCY"] === "1";
 }
 
 /**
