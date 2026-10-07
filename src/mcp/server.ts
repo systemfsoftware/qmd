@@ -1296,13 +1296,13 @@ export async function startMcpHttpServer(
 
         // Optional metadata filter — must be an object and a valid filter AST
         let restFilter: MetadataFilter | undefined;
-        if (params.filter !== undefined) {
-          if (typeof params.filter !== "object" || params.filter === null || Array.isArray(params.filter)) {
+        if (params["filter"] !== undefined) {
+          if (typeof params["filter"] !== "object" || params["filter"] === null || Array.isArray(params["filter"])) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: "Invalid field: filter (must be an object)" }));
             return;
           }
-          const filterValidation = validateFilterArgument(params.filter);
+          const filterValidation = validateFilterArgument(params["filter"]);
           if (filterValidation.error) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: filterValidation.error }));
@@ -1313,13 +1313,13 @@ export async function startMcpHttpServer(
 
         // Optional metadata match, validated the same way against entries
         let restMatch: MetadataMatch | undefined;
-        if (params.match !== undefined) {
-          if (typeof params.match !== "object" || params.match === null || Array.isArray(params.match)) {
+        if (params["match"] !== undefined) {
+          if (typeof params["match"] !== "object" || params["match"] === null || Array.isArray(params["match"])) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: "Invalid field: match (must be an object)" }));
             return;
           }
-          const matchValidation = validateMatchArgument(params.match);
+          const matchValidation = validateMatchArgument(params["match"]);
           if (matchValidation.error) {
             nodeRes.writeHead(400, { "Content-Type": "application/json" });
             nodeRes.end(JSON.stringify({ error: matchValidation.error }));
@@ -1328,13 +1328,13 @@ export async function startMcpHttpServer(
           restMatch = matchValidation.match;
         }
 
-        if (params.sort !== undefined && params.sort !== "count" && params.sort !== "value") {
+        if (params["sort"] !== undefined && params["sort"] !== "count" && params["sort"] !== "value") {
           nodeRes.writeHead(400, { "Content-Type": "application/json" });
           nodeRes.end(JSON.stringify({ error: "Invalid field: sort (must be 'count' or 'value')" }));
           return;
         }
 
-        if (params.collections !== undefined && !Array.isArray(params.collections)) {
+        if (params["collections"] !== undefined && !Array.isArray(params["collections"])) {
           nodeRes.writeHead(400, { "Content-Type": "application/json" });
           nodeRes.end(JSON.stringify({ error: "Invalid field: collections (must be an array)" }));
           return;
@@ -1349,7 +1349,7 @@ export async function startMcpHttpServer(
         }
 
         // Use default collections if none specified
-        const effectiveCollections = params.collections ? params.collections.map(String) : defaultCollectionNames;
+        const effectiveCollections = params["collections"] ? params["collections"].map(String) : defaultCollectionNames;
 
         let result: ListMetadataResult;
         try {
@@ -1357,7 +1357,7 @@ export async function startMcpHttpServer(
             collection: effectiveCollections.length > 0 ? effectiveCollections : undefined,
             match: restMatch,
             filter: restFilter,
-            sort: params.sort,
+            sort: params["sort"],
             ...numberFields.values,
           });
         } catch (err) {

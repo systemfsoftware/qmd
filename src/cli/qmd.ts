@@ -2012,27 +2012,27 @@ function collectionMetadata(collectionNames: string[], options: ListMetadataOpti
 // Parse the discovery-specific flags; exits with usage on a bad value.
 function parseCliMetadataOptions(values: Record<string, unknown>): ListMetadataOptions {
   const options: ListMetadataOptions = {
-    match: parseCliMetadataMatch(values.match),
-    filter: parseCliMetadataFilter(values.filter),
+    match: parseCliMetadataMatch(values["match"]),
+    filter: parseCliMetadataFilter(values["filter"]),
   };
 
   // Discovery windows two dimensions, so the single-window search flags
   // have no reading here. Point at the flags that do.
-  if (values.n !== undefined) {
+  if (values["n"] !== undefined) {
     console.error("-n is not an option of 'qmd collection metadata'");
     console.error("Use --value-limit <n> for values per key, or --key-limit <n> for keys");
     process.exit(1);
   }
-  if (values.all) {
+  if (values["all"]) {
     console.error("--all is not an option of 'qmd collection metadata'");
     console.error("Use --all-values, --all-keys, or both");
     process.exit(1);
   }
 
   const formatAlias = ["json", "csv", "md", "xml", "files"].find(flag => values[flag]);
-  const format = typeof values.format === "string" ? values.format.trim().toLowerCase() : undefined;
+  const format = typeof values["format"] === "string" ? values["format"].trim().toLowerCase() : undefined;
   if (formatAlias || (format !== undefined && format !== "cli")) {
-    console.error(`${formatAlias ? `--${formatAlias}` : `--format ${String(values.format)}`} is not supported by 'qmd collection metadata'`);
+    console.error(`${formatAlias ? `--${formatAlias}` : `--format ${String(values["format"])}`} is not supported by 'qmd collection metadata'`);
     console.error("This command prints text. Use the SDK, MCP metadata tool, or POST /metadata for structured output");
     process.exit(1);
   }
@@ -2059,13 +2059,13 @@ function parseCliMetadataOptions(values: Record<string, unknown>): ListMetadataO
     options.minCount = parsePositiveInteger(values["min-count"], "--min-count");
   }
 
-  if (values.sort !== undefined) {
-    if (values.sort !== "count" && values.sort !== "value") {
-      console.error(`Invalid --sort value: ${String(values.sort)}`);
+  if (values["sort"] !== undefined) {
+    if (values["sort"] !== "count" && values["sort"] !== "value") {
+      console.error(`Invalid --sort value: ${String(values["sort"])}`);
       console.error("Valid: count, value");
       process.exit(1);
     }
-    options.sort = values.sort;
+    options.sort = values["sort"];
   }
 
   return options;

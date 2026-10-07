@@ -235,27 +235,27 @@ export function parseMetadataJson(metadataJson: string | null | undefined): Docu
 
 export interface ListMetadataOptions {
   /** Restrict to these collections. Undefined means every collection in the index. */
-  collection?: string | string[];
+  collection?: string | string[] | undefined;
   /**
    * Report only the metadata entries matching this condition. Same grammar as
    * `filter`, evaluated against each entry: a condition's `field` names the
    * entry's `key` or `value`. Undefined reports every entry.
    */
-  match?: MetadataMatch;
+  match?: MetadataMatch | undefined;
   /** Count only documents matching this filter. Same AST as search. */
-  filter?: MetadataFilter;
+  filter?: MetadataFilter | undefined;
   /** Keys reported (default 50). `Infinity` removes the window. */
-  keyLimit?: number;
+  keyLimit?: number | undefined;
   /** Keys skipped before the window, in report order (default 0). */
-  keyOffset?: number;
+  keyOffset?: number | undefined;
   /** Values reported per key and type (default 10). `Infinity` removes the window. */
-  valueLimit?: number;
+  valueLimit?: number | undefined;
   /** Values skipped per key and type before the window, in `sort` order (default 0). */
-  valueOffset?: number;
+  valueOffset?: number | undefined;
   /** Order of values within a key (default "count"). */
-  sort?: "count" | "value";
+  sort?: "count" | "value" | undefined;
   /** Drop values held by fewer documents than this (default 1). */
-  minCount?: number;
+  minCount?: number | undefined;
 }
 
 export interface ListMetadataResult {

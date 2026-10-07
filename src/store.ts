@@ -1869,8 +1869,8 @@ async function reindexCollectionIn(
   globPattern: string,
   collectionName: string,
   options?: {
-    ignorePatterns?: string[];
-    onProgress?: (info: ReindexProgress) => void;
+    ignorePatterns?: string[] | undefined;
+    onProgress?: ((info: ReindexProgress) => void) | undefined;
   }
 ): Promise<ReindexResult> {
   const db = store.db;
