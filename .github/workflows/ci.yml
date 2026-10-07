@@ -63,5 +63,4 @@ jobs:
         run: bun test --timeout 60000 --preload ./src/test-preload.ts test/
         env:
           CI: true
-          DYLD_LIBRARY_PATH: /opt/homebrew/opt/sqlite/lib
           LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu

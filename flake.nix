@@ -30,7 +30,7 @@
           };
         };
     } //
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         packageJson = builtins.fromJSON (builtins.readFile ./package.json);
@@ -45,11 +45,9 @@
 
         nodeModulesHashes = {
           x86_64-linux = "sha256-kWfm4L689mdxDtH976p/eLuQMO5NkPKXh+vhT2dqkcs=";
-          aarch64-darwin = "sha256-9vvR3KLmBc+4bfyWEyyM8FHWg+DfiDzUlwqUlm3NFc8=";
 
-          # Populate these on first build for additional hosts if/when needed.
+          # Populate on first build if/when needed.
           aarch64-linux = pkgs.lib.fakeHash;
-          x86_64-darwin = pkgs.lib.fakeHash;
         };
 
         nodeModules = pkgs.stdenvNoCC.mkDerivation {
@@ -104,8 +102,6 @@
             pkgs.nodejs
             pkgs.node-gyp
             pkgs.python3  # needed by node-gyp to compile better-sqlite3
-          ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-            pkgs.darwin.cctools  # provides libtool needed by node-gyp on macOS
           ];
 
           buildInputs = [ pkgs.sqlite ];
@@ -130,24 +126,20 @@
 
             # The flake wraps `bun src/cli/qmd.ts` directly, so bin/qmd never
             # runs. Mirror its pre-import env here (#723): quiet llama/ggml
-            # native logs for `qmd mcp` (stdio is JSON-RPC), and disable Metal
-            # residency sets on Darwin so ggml's process-static destructor
-            # does not dump a stack trace after a successful query
-            # (ggml-org/llama.cpp#22593). `--run` fires before bun starts, so
-            # the env is in place before the native binding loads. Preserve
-            # explicit user values; QMD_METAL_KEEP_RESIDENCY=1 opts back in.
+            # native logs for `qmd mcp` (stdio is JSON-RPC). `--run` fires
+            # before bun starts, so the env is in place before the native
+            # binding loads. Preserve explicit user values.
             makeWrapper ${pkgs.bun}/bin/bun $out/bin/qmd \
               --add-flags "$out/lib/qmd/src/cli/qmd.ts" \
-              --set DYLD_LIBRARY_PATH "${pkgs.sqlite.out}/lib" \
-              --set LD_LIBRARY_PATH "${pkgs.sqlite.out}/lib${pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ":${pkgs.stdenv.cc.libc.out}/lib:${pkgs.stdenv.cc.cc.lib}/lib"}" \
-              --run 'if [ "$1" = mcp ]; then export LLAMA_LOG_LEVEL="''${LLAMA_LOG_LEVEL:-error}"; export GGML_LOG_LEVEL="''${GGML_LOG_LEVEL:-error}"; export GGML_BACKEND_SILENT="''${GGML_BACKEND_SILENT:-1}"; fi; if [ "$(uname -s)" = Darwin ] && [ "''${QMD_METAL_KEEP_RESIDENCY:-}" != 1 ]; then export GGML_METAL_NO_RESIDENCY="''${GGML_METAL_NO_RESIDENCY:-1}"; fi'
+              --set LD_LIBRARY_PATH "${pkgs.sqlite.out}/lib:${pkgs.stdenv.cc.libc.out}/lib:${pkgs.stdenv.cc.cc.lib}/lib" \
+              --run 'if [ "$1" = mcp ]; then export LLAMA_LOG_LEVEL="''${LLAMA_LOG_LEVEL:-error}"; export GGML_LOG_LEVEL="''${GGML_LOG_LEVEL:-error}"; export GGML_BACKEND_SILENT="''${GGML_BACKEND_SILENT:-1}"; fi'
           '';
 
           meta = with pkgs.lib; {
             description = "On-device search engine for markdown notes, meeting transcripts, and knowledge bases";
             homepage = "https://github.com/tobi/qmd";
             license = licenses.mit;
-            platforms = platforms.unix;
+            platforms = platforms.linux;
             mainProgram = "qmd";
           };
         };

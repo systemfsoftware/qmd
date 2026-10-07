@@ -9,11 +9,7 @@
  * BEFORE bun/node starts (libggml-metal reads it via libc getenv at
  * module load). Bun does not propagate `process.env` writes to libc
  * setenv, so setting it from here would be a no-op for the native
- * binding. The env var is injected by:
- *   - bin/qmd for production CLI runs
- *   - scripts/test-all.mjs for `npm test`
- *   - package.json test:bun / test:unit scripts for direct invocation
- * See CLAUDE.md for invoking `bun test` manually on darwin.
+ * binding. bin/qmd injects the env var for production CLI runs.
  */
 import { afterAll } from "bun:test";
 import { disposeDefaultLlamaCpp } from "./llm";
